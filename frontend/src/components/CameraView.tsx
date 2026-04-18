@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import PersonOverlay from "./PersonOverlay.tsx";
 import { recognizeFace } from "../services/api";
 
@@ -54,7 +54,7 @@ const CameraView: React.FC = () => {
             }
         };
 
-        startCamera();
+        startCamera().then();
 
         return () => {
             streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -62,20 +62,9 @@ const CameraView: React.FC = () => {
     }, []);
 
     // ----------------------------
-    // FRAME CAPTURE LOOP (10s)
-    // ----------------------------
-    useEffect(() => {
-        const interval = setInterval(() => {
-            captureFrame();
-        }, 10000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    // ----------------------------
     // CAPTURE FUNCTION (NON-BLOCKING)
     // ----------------------------
-    const captureFrame = () => {
+    const captureFrame = useCallback(() => {
         const video = videoRef.current;
         const canvas = canvasRef.current;
 
@@ -114,7 +103,18 @@ const CameraView: React.FC = () => {
                 }
             }, "image/jpeg", 0.6);
         });
-    };
+    }, []);
+
+    // ----------------------------
+    // FRAME CAPTURE LOOP (10s)
+    // ----------------------------
+    useEffect(() => {
+        const interval = setInterval(() => {
+            captureFrame();
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [captureFrame]);
 
     // ----------------------------
     // UI
