@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import PersonOverlay from './PersonOverlay.tsx';
-import { recognizeFace } from '../services/api';
+import React, { useEffect, useRef, useState } from "react";
+import PersonOverlay from "./PersonOverlay.tsx";
+import {recognizeFace} from "../services/api.ts";
 
 const DEFAULT_PERSON = {
     known: false,
@@ -17,42 +17,82 @@ const CameraView: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    const workerRef = useRef<Worker | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+
     const [person, setPerson] = useState(DEFAULT_PERSON);
 
-    // 🔒 prevents overlapping requests
     const isProcessingRef = useRef(false);
 
+    // ----------------------------
+    // START CAMERA
+    // ----------------------------
     useEffect(() => {
-        let stream: MediaStream | null = null;
+        const startCamera = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" },
+                    audio: false,
+                });
 
-        // ✅ capture refs safely at mount time (fixes ESLint warning)
-        const videoEl = videoRef.current;
-        const canvasEl = canvasRef.current;
+                streamRef.current = stream;
 
-        const captureAndSend = async () => {
-            if (!videoEl || !canvasEl) return;
-            if (isProcessingRef.current) return;
+                const video = videoRef.current;
+                if (!video) return;
 
-            isProcessingRef.current = true;
+                video.srcObject = stream;
+                video.muted = true;
+                video.playsInline = true;
 
-            canvasEl.width = videoEl.videoWidth;
-            canvasEl.height = videoEl.videoHeight;
+                await video.play();
 
-            const ctx = canvasEl.getContext('2d');
-            if (!ctx) {
-                isProcessingRef.current = false;
-                return;
+                console.log("Camera ready");
+            } catch (err) {
+                console.error("Camera error:", err);
             }
+        };
 
-            ctx.drawImage(videoEl, 0, 0);
+        startCamera();
 
-            canvasEl.toBlob(async (blob) => {
+        return () => {
+            streamRef.current?.getTracks().forEach((t) => t.stop());
+        };
+    }, []);
+
+    // ----------------------------
+    // FRAME CAPTURE LOOP
+    // ----------------------------
+    useEffect(() => {
+        const interval = setInterval(() => {
+            captureFrame();
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const captureFrame = async () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+
+        if (!video || !canvas) return;
+        if (isProcessingRef.current) return;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        isProcessingRef.current = true;
+
+        requestAnimationFrame(async () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            ctx.drawImage(video, 0, 0);
+
+            canvas.toBlob(async (blob) => {
                 if (!blob) {
                     isProcessingRef.current = false;
                     return;
                 }
-
-                console.log('Sending frame...');
 
                 try {
                     const data = await recognizeFace(blob);
@@ -62,92 +102,49 @@ const CameraView: React.FC = () => {
                         ...data,
                         time: new Date().toLocaleString(),
                     });
-
                 } catch (err) {
-                    console.error('Send error:', err);
+                    console.error("Recognition error:", err);
                 } finally {
                     isProcessingRef.current = false;
                 }
-            }, 'image/jpeg', 0.9);
-        };
+            }, "image/jpeg", 0.6);
+        });
+    };
 
-        navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user' },
-            audio: false
-        })
-            .then(async (s) => {
-                stream = s;
-
-                if (videoEl) {
-                    videoEl.srcObject = stream;
-
-                    videoEl.setAttribute('playsinline', 'true');
-                    videoEl.muted = true;
-                    videoEl.autoplay = true;
-
-                    await new Promise((resolve) => {
-                        videoEl.onloadedmetadata = () => resolve(true);
-                    });
-
-                    console.log('Camera ready');
-
-                    setTimeout(captureAndSend, 10000);
-                }
-            })
-            .catch(err => {
-                console.error('Error accessing camera:', err);
-            });
-
-        return () => {
-            // ✅ use local stream variable instead of ref (FIXES ESLint warning)
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        };
-    }, []);
-
+    // ----------------------------
+    // UI
+    // ----------------------------
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'black',
-            zIndex: 0,
-            overflow: 'hidden'
-        }}>
-            {/* VIDEO */}
+        <div
+            style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100vw",
+                height: "100vh",
+                background: "black",
+                overflow: "hidden",
+            }}
+        >
             <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
                 style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
                 }}
             />
 
-            {/* CANVAS */}
             <canvas
                 ref={canvasRef}
                 style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    pointerEvents: 'none',
-                    zIndex: 1
+                    display: "none", // hidden, only for capture
                 }}
             />
 
-            {/* OVERLAY */}
             <PersonOverlay
                 name={person.name}
                 relationship={person.relationship}
