@@ -1,10 +1,19 @@
-CREATE TABLE IF NOT EXISTS persons (
+-- User table
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    full_name VARCHAR(255) NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    home_address VARCHAR(255),
+    diagnosis VARCHAR(255)
 );
 
+-- Person table
+CREATE TABLE IF NOT EXISTS persons (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    age INTEGER,
+    relationship VARCHAR(100)
+);
+
+-- Conversation table
 CREATE TABLE IF NOT EXISTS conversations (
     id SERIAL PRIMARY KEY,
     person_id INTEGER NOT NULL,
@@ -16,6 +25,7 @@ CREATE TABLE IF NOT EXISTS conversations (
         ON DELETE CASCADE
 );
 
+-- Embeddings table
 CREATE TABLE IF NOT EXISTS embeddings (
     id SERIAL PRIMARY KEY,
     person_id INTEGER NOT NULL,
