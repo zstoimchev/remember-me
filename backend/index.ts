@@ -1,19 +1,27 @@
-import express, { Request, Response } from "express";
-import pool from './src/db';
+import express from "express";
+import cors from "cors";
+import recognitionRouter from "./src/routes/recognitionRoute";
 
 const app = express();
 
-app.use(express.json());
+// enable CORS
+app.use(cors());
 
-app.get("/", (req: Request, res: Response) => {
+// middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// routes
+app.use("/api", recognitionRouter);
+
+// test routes
+app.get("/", (_, res) => {
     res.send("Hello from TypeScript Express 🚀");
 });
 
-app.get("/health", (req: Request, res: Response) => {
+app.get("/health", (_, res) => {
     res.json({ status: "ok" });
 });
-
-
 
 const PORT = 3000;
 

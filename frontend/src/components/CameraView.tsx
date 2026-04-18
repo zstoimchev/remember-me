@@ -89,11 +89,11 @@ const CameraView: React.FC = () => {
                 }
 
                 try {
-                    const data = await recognizeFace(blob);
+                    const response = await recognizeFace(blob);
 
                     setPerson({
                         ...DEFAULT_PERSON,
-                        ...data,
+                        ...response.data,
                         time: new Date().toLocaleString(),
                     });
                 } catch (err) {
@@ -111,7 +111,7 @@ const CameraView: React.FC = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             captureFrame();
-        }, 10000);
+        }, 2 * 1000);
 
         return () => clearInterval(interval);
     }, [captureFrame]);
@@ -148,10 +148,10 @@ const CameraView: React.FC = () => {
 
             <PersonOverlay
                 name={person.name}
-                relationship={person.relationship}
-                age={person.age}
-                diagnosis={person.diagnosis}
-                lastConversation={person.lastConversation}
+                relationship={person.relationship ?? "Unknown"}
+                age={person.age ?? 0}
+                diagnosis={person.diagnosis ?? "None"}
+                lastConversation={person.lastConversation ?? "N/A"}
                 time={person.time}
                 location={person.location}
             />
