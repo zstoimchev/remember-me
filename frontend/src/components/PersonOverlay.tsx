@@ -1,4 +1,5 @@
 import React from 'react';
+import SpeechToText from "./SpeechToText.tsx"
 
 interface PersonOverlayProps {
   name: string;
@@ -85,6 +86,7 @@ const timeLocationBoxStyle: React.CSSProperties = {
 const PersonOverlay: React.FC<PersonOverlayProps> = ({ name, relationship, age, diagnosis, lastConversation, time, location }) => {
   return (
     <>
+      <SpeechToText />
       {/* Right top: personal info */}
       <div style={rightColumnStyle}>
         <div style={overlayBoxStyle}>
