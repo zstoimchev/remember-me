@@ -1,7 +1,3 @@
-Here’s a clean, simple, **non-overengineered README** that matches what you actually have right now (DB only + planned services), but still looks solid for a hackathon.
-
----
-
 # 🧠 Remember Me
 
 > Smart glasses assistant for memory support — Dragonhack 2026
@@ -95,6 +91,12 @@ docker compose down
 ```bash
 docker compose down -v
 docker compose up
+```
+
+### Log in to Postgres inside the container:
+
+```basb
+docker exec -it db psql -U remember_me_user -d remember_me
 ```
 
 ---
