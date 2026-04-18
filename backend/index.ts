@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import pool from './src/db';
 
 const app = express();
 
@@ -11,6 +12,8 @@ app.get("/", (req: Request, res: Response) => {
 app.get("/health", (req: Request, res: Response) => {
     res.json({ status: "ok" });
 });
+
+
 
 const PORT = 3000;
 
