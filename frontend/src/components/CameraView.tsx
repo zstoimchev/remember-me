@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import PersonOverlay from "./PersonOverlay.tsx";
-import {recognizeFace} from "../services/api.ts";
+import { recognizeFace } from "../services/api";
 
 const DEFAULT_PERSON = {
     known: false,
@@ -17,17 +17,19 @@ const CameraView: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const workerRef = useRef<Worker | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const startedRef = useRef(false);
+    const isProcessingRef = useRef(false);
 
     const [person, setPerson] = useState(DEFAULT_PERSON);
 
-    const isProcessingRef = useRef(false);
-
     // ----------------------------
-    // START CAMERA
+    // CAMERA INIT (FIXED)
     // ----------------------------
     useEffect(() => {
+        if (startedRef.current) return; // 🔥 prevents StrictMode double run
+        startedRef.current = true;
+
         const startCamera = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -60,7 +62,7 @@ const CameraView: React.FC = () => {
     }, []);
 
     // ----------------------------
-    // FRAME CAPTURE LOOP
+    // FRAME CAPTURE LOOP (10s)
     // ----------------------------
     useEffect(() => {
         const interval = setInterval(() => {
@@ -70,7 +72,10 @@ const CameraView: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const captureFrame = async () => {
+    // ----------------------------
+    // CAPTURE FUNCTION (NON-BLOCKING)
+    // ----------------------------
+    const captureFrame = () => {
         const video = videoRef.current;
         const canvas = canvasRef.current;
 
@@ -82,7 +87,7 @@ const CameraView: React.FC = () => {
 
         isProcessingRef.current = true;
 
-        requestAnimationFrame(async () => {
+        requestAnimationFrame(() => {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
@@ -138,12 +143,8 @@ const CameraView: React.FC = () => {
                 }}
             />
 
-            <canvas
-                ref={canvasRef}
-                style={{
-                    display: "none", // hidden, only for capture
-                }}
-            />
+            {/* hidden canvas used only for frame capture */}
+            <canvas ref={canvasRef} style={{ display: "none" }} />
 
             <PersonOverlay
                 name={person.name}
