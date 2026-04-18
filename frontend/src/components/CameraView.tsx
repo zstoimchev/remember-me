@@ -17,55 +17,51 @@ const CameraView: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // 🚀 NO HOT RE-RENDER STATE
-    const personRef = useRef(DEFAULT_PERSON);
+    const [person, setPerson] = useState(DEFAULT_PERSON);
 
-    // only used to trigger UI refresh (lightweight)
-    const [, forceRender] = useState(0);
-
+    // 🔒 prevents overlapping requests
     const isProcessingRef = useRef(false);
 
     useEffect(() => {
-        let stream: MediaStream;
+        let stream: MediaStream | null = null;
+
+        // ✅ capture refs safely at mount time (fixes ESLint warning)
+        const videoEl = videoRef.current;
+        const canvasEl = canvasRef.current;
 
         const captureAndSend = async () => {
-            if (!videoRef.current || !canvasRef.current) return;
+            if (!videoEl || !canvasEl) return;
             if (isProcessingRef.current) return;
 
             isProcessingRef.current = true;
 
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
+            canvasEl.width = videoEl.videoWidth;
+            canvasEl.height = videoEl.videoHeight;
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            const ctx = canvas.getContext('2d');
+            const ctx = canvasEl.getContext('2d');
             if (!ctx) {
                 isProcessingRef.current = false;
                 return;
             }
 
-            ctx.drawImage(video, 0, 0);
+            ctx.drawImage(videoEl, 0, 0);
 
-            canvas.toBlob(async (blob) => {
+            canvasEl.toBlob(async (blob) => {
                 if (!blob) {
                     isProcessingRef.current = false;
                     return;
                 }
 
+                console.log('Sending frame...');
+
                 try {
                     const data = await recognizeFace(blob);
 
-                    // 🚀 update ref (NO RE-RENDER STORM)
-                    personRef.current = {
+                    setPerson({
                         ...DEFAULT_PERSON,
                         ...data,
                         time: new Date().toLocaleString(),
-                    };
-
-                    // lightweight UI refresh only
-                    forceRender(v => v + 1);
+                    });
 
                 } catch (err) {
                     console.error('Send error:', err);
@@ -82,24 +78,20 @@ const CameraView: React.FC = () => {
             .then(async (s) => {
                 stream = s;
 
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
+                if (videoEl) {
+                    videoEl.srcObject = stream;
 
-                    videoRef.current.setAttribute('playsinline', 'true');
-                    videoRef.current.muted = true;
-                    videoRef.current.autoplay = true;
+                    videoEl.setAttribute('playsinline', 'true');
+                    videoEl.muted = true;
+                    videoEl.autoplay = true;
 
                     await new Promise((resolve) => {
-                        videoRef.current!.onloadedmetadata = () => resolve(true);
+                        videoEl.onloadedmetadata = () => resolve(true);
                     });
 
                     console.log('Camera ready');
 
-                    // first run
                     setTimeout(captureAndSend, 10000);
-
-                    // optional loop (safe now)
-                    // setInterval(captureAndSend, 10000);
                 }
             })
             .catch(err => {
@@ -107,14 +99,12 @@ const CameraView: React.FC = () => {
             });
 
         return () => {
-            if (videoRef.current?.srcObject) {
-                const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-                tracks.forEach(t => t.stop());
+            // ✅ use local stream variable instead of ref (FIXES ESLint warning)
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
             }
         };
     }, []);
-
-    const p = personRef.current;
 
     return (
         <div style={{
@@ -127,7 +117,7 @@ const CameraView: React.FC = () => {
             zIndex: 0,
             overflow: 'hidden'
         }}>
-            {/* VIDEO (NEVER RE-RENDERS) */}
+            {/* VIDEO */}
             <video
                 ref={videoRef}
                 autoPlay
@@ -143,7 +133,7 @@ const CameraView: React.FC = () => {
                 }}
             />
 
-            {/* CANVAS (NO fixed width/height = no layout thrash) */}
+            {/* CANVAS */}
             <canvas
                 ref={canvasRef}
                 style={{
@@ -157,15 +147,15 @@ const CameraView: React.FC = () => {
                 }}
             />
 
-            {/* OVERLAY ALWAYS RENDERS FROM REF */}
+            {/* OVERLAY */}
             <PersonOverlay
-                name={p.name}
-                relationship={p.relationship}
-                age={p.age}
-                diagnosis={p.diagnosis}
-                lastConversation={p.lastConversation}
-                time={p.time}
-                location={p.location}
+                name={person.name}
+                relationship={person.relationship}
+                age={person.age}
+                diagnosis={person.diagnosis}
+                lastConversation={person.lastConversation}
+                time={person.time}
+                location={person.location}
             />
         </div>
     );
