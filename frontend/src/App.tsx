@@ -1,10 +1,9 @@
-import './App.css'
-import FrontCamera from './FrontCamera'
+import CameraView from './components/CameraView.tsx'
 
 function App() {
   return (
     <>
-      <FrontCamera />
+      <CameraView />
     </>
   )
 }
