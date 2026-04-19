@@ -2,6 +2,10 @@
 
 > Smart glasses assistant for memory support — Dragonhack 2026
 
+Built in under 24 hours at **Dragonhack 2026** as a hackathon prototype — from idea to working implementation.
+
+---
+
 ## 📌 Overview
 
 **Remember Me** is a prototype system designed to assist people with Alzheimer’s disease and dementia by helping them recognize individuals and recall recent interactions.
