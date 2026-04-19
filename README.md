@@ -1,8 +1,8 @@
 # 🧠 Remember Me
 
-> Smart glasses assistant for memory support — Dragonhack 2026
+> Smart glasses assistant for memory support - Dragonhack 2026
 
-Built in under 24 hours at **Dragonhack 2026** as a hackathon prototype — from idea to working implementation.
+Built in under 24 hours at **Dragonhack 2026** as a hackathon prototype - from idea to working implementation.
 
 ---
 
