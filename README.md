@@ -200,7 +200,7 @@ Browser (camera)
   ▼
 Backend :3001  ──── face image (multipart) ──▶  ML Service :8000
   │                                                  │
-  │  ◀──── 128-dim FaceNet embedding ───────────────┘
+  │  ◀──── 128-dim FaceNet embedding ────────────────┘
   │
   │  similarity check
   ▼
