@@ -1,7 +1,8 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import recognitionRouter from "./src/routes/recognitionRoute";
-import "dotenv/config";
+import summarizeRouter from "./src/routes/summarizeRoute";
 
 const app = express();
 
@@ -14,14 +15,15 @@ app.use(express.urlencoded({ extended: true }));
 
 // routes
 app.use("/api", recognitionRouter);
+app.use("/api", summarizeRouter);
 
 // test routes
 app.get("/", (_, res) => {
-    res.send("Hello from TypeScript Express 🚀");
+  res.send("Hello from TypeScript Express 🚀");
 });
 
 app.get("/health", (_, res) => {
-    res.json({ status: "ok" });
+  res.json({ status: "ok" });
 });
 
 const PORT = 3000;
@@ -31,5 +33,5 @@ app.get("/test", (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
