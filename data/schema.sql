@@ -1,3 +1,10 @@
+-- Versioning table (useful for DB migrations)
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id SERIAL PRIMARY KEY,
+    filename TEXT UNIQUE NOT NULL,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- User table
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
