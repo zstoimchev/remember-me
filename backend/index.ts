@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import recognitionRouter from "./src/routes/recognitionRoute";
+import "dotenv/config";
 
 const app = express();
 
@@ -24,6 +25,10 @@ app.get("/health", (_, res) => {
 });
 
 const PORT = 3000;
+
+app.get("/test", (req, res) => {
+  res.send("server works");
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
