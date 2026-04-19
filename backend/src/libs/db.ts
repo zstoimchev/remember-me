@@ -1,11 +1,11 @@
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  user: 'remember_me_user',
   host: 'localhost',
+  port: 5432,
   database: 'remember_me',
-  password: 'newpassword123',
-  port: 5433,
+  user: 'remember_me_user',
+  password: 'remember_me_password',
 });
 
 export default pool;

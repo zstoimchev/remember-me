@@ -8,7 +8,7 @@ const upload = multer({
     storage: multer.memoryStorage(),
 });
 
-router.post("/recognizePerson", upload.single("image"), handleRecognize);
+router.post("/recognize", upload.single("image"), handleRecognize);
 router.get("/recognize", upload.single("image"), handleRecognize);
 
 export default router;
