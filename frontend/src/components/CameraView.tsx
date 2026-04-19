@@ -90,6 +90,7 @@ const CameraView: React.FC = () => {
 
                 try {
                     const response = await recognizeFace(blob);
+                    console.log("Recognized face", response);
 
                     setPerson({
                         ...DEFAULT_PERSON,
@@ -110,9 +111,9 @@ const CameraView: React.FC = () => {
     // ----------------------------
     useEffect(() => {
         const interval = setInterval(() => {
-            console.log("📸 Capturing photo..."); // Added console log
+            console.log("Capturing photo..."); // Added console log
             captureFrame();
-        }, 20 * 1000); // Changed to 20 seconds (20 * 1000 ms)
+        }, 2 * 1000);
 
         return () => clearInterval(interval);
     }, [captureFrame]);
@@ -149,12 +150,12 @@ const CameraView: React.FC = () => {
 
             <PersonOverlay
                 name={person.name}
-                relationship={person.relationship ?? "Unknown"}
+                relationship={person.relationship ?? "Unknown relationship"}
                 age={person.age ?? 0}
-                diagnosis={person.diagnosis ?? "None"}
+                diagnosis="Alzheimer's disease, Memory loss"
                 lastConversation={person.lastConversation ?? "N/A"}
                 time={person.time}
-                location={person.location}
+                location="FRI, Ljubljana"
             />
         </div>
     );

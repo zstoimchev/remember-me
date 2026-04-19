@@ -1,138 +1,114 @@
-export interface RecognizedPerson {
-    known: boolean;
-    name: string | null;
-    relationship: string | null;
-    age: number | null;
-    diagnosis: string | null;
-    lastConversation: string | null;
-    location: string | null;
-}
-
-import pool from "../libs/db";
 import { getEmbedding } from "./mlService";
+import { cosineSimilarity } from "../utils/similarity";
+import {
+    getAllEmbeddings,
+    saveEmbedding,
+} from "../repositories/embeddingRepository";
+import {
+    createUnknownPerson,
+    getPersonDetails,
+} from "../repositories/personRepository";
 
-const SIMILARITY_THRESHOLD = 0.6;
+const SIMILARITY_THRESHOLD = 0.55;
+const UNKNOWN_THRESHOLD = 0.5;
+const COOLDOWN_MS = 3000;
 
-function cosineSimilarity(a: number[], b: number[]): number {
-  const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  if (magA === 0 || magB === 0) return 0;
-  return dot / (magA * magB);
-}
+let lastRecognition: { personId: number | null; timestamp: number } | null = null;
 
-async function findPersonByEmbedding(incoming: number[]): Promise<number | null> {
-  // pull all stored embeddings and compare in code (no pgvector)
-  const result = await pool.query(
-    `SELECT person_id, embedding FROM embeddings`
-  );
+function findBestMatch(incoming: number[], rows: any[]) {
+    let best: { personId: number; similarity: number } | null = null;
 
-  let bestMatch: { personId: number; similarity: number } | null = null;
+    for (const row of rows) {
+        const stored: number[] = JSON.parse(row.embedding);
+        const similarity = cosineSimilarity(incoming, stored);
 
-  for (const row of result.rows) {
-    const stored: number[] = JSON.parse(row.embedding);
-    const similarity = cosineSimilarity(incoming, stored);
-
-    if (similarity > SIMILARITY_THRESHOLD) {
-      if (!bestMatch || similarity > bestMatch.similarity) {
-        bestMatch = { personId: row.person_id, similarity };
-      }
+        if (!best || similarity > best.similarity) {
+            best = { personId: row.person_id, similarity };
+        }
     }
-  }
 
-  return bestMatch?.personId ?? null;
+    return best;
 }
 
-async function getPersonDetails(personId: number): Promise<RecognizedPerson | null> {
-  const result = await pool.query(
-    `SELECT p.name, p.age, p.relationship,
-            (SELECT summary FROM conversations
-             WHERE person_id = p.id
-             ORDER BY created_at DESC
-             LIMIT 1) AS last_conversation,
-            (SELECT diagnosis FROM users LIMIT 1) AS diagnosis
-     FROM persons p
-     WHERE p.id = $1`,
-    [personId]
-  );
+export async function recognizePerson(imageBuffer: Buffer) {
+    const now = Date.now();
 
-  if (!result.rows.length) return null;
-  const row = result.rows[0];
+    console.log("[recognize] start");
 
-  return {
-    known: true,
-    name: row.name,
-    relationship: row.relationship,
-    age: row.age,
-    diagnosis: row.diagnosis ?? null,
-    lastConversation: row.last_conversation ?? null,
-    location: null,
-  };
-}
+    if (lastRecognition && now - lastRecognition.timestamp < COOLDOWN_MS) {
+        console.log("[recognize] cooldown active");
+        return { known: !!lastRecognition.personId };
+    }
 
-export async function recognizePerson(imageBuffer: Buffer): Promise<RecognizedPerson> {
-  console.log("A. recognizePerson started");
-  console.log("B. buffer size:", imageBuffer.length);
+    const embedding = await getEmbedding(imageBuffer);
 
-  console.log("C. before getEmbedding");
-  const embedding = await getEmbedding(imageBuffer);
-  console.log("D. after getEmbedding", embedding ? "got embedding" : "no embedding");
+    console.log("[recognize] embedding received:", {
+        hasEmbedding: !!embedding,
+        length: embedding?.length ?? 0,
+    });
 
-  if (!embedding) {
-    console.log("E. no embedding returned");
-    return {
-      known: false,
-      name: null,
-      relationship: null,
-      age: null,
-      diagnosis: null,
-      lastConversation: null,
-      location: null,
-    };
-  }
+    if (!embedding) {
+        console.log("[recognize] no face detected");
+        return { known: false };
+    }
 
-  console.log("F. embedding exists");
+    const embeddings = await getAllEmbeddings();
+    const match = findBestMatch(embedding, embeddings);
 
-  // 2. search existing embeddings for a match
-  const personId = await findPersonByEmbedding(embedding);
+    console.log("[recognize] best match:", match);
 
-  if (!personId) {
-    // 3a. no match — store embedding as new unknown person
-    const newPerson = await pool.query(
-      `INSERT INTO persons (name) VALUES ('Unknown') RETURNING id`
-    );
-    const newId = newPerson.rows[0].id;
+    if (!match) {
+        console.log("[recognize] no match → creating new person");
 
-    await pool.query(
-      `INSERT INTO embeddings (person_id, embedding) VALUES ($1, $2)`,
-      [newId, JSON.stringify(embedding)]
-    );
+        const newId = await createUnknownPerson();
+        await saveEmbedding(newId, embedding);
 
-    return {
-      known: false,
-      name: null,
-      relationship: null,
-      age: null,
-      diagnosis: null,
-      lastConversation: null,
-      location: null,
-    };
-  }
+        lastRecognition = { personId: null, timestamp: now };
 
-  // 3b. match found — fetch full person details
-  const person = await getPersonDetails(personId);
+        console.log("[recognize] final response: unknown (new person created)");
+        return { known: false };
+    }
 
-  if (!person) {
-    return {
-      known: false,
-      name: null,
-      relationship: null,
-      age: null,
-      diagnosis: null,
-      lastConversation: null,
-      location: null,
-    };
-  }
+    if (match.similarity >= SIMILARITY_THRESHOLD) {
+        console.log("[recognize] strong match → known person", match.personId);
 
-  return person;
+        const person = await getPersonDetails(match.personId);
+
+        console.log("[recognize] person data:", person);
+
+        lastRecognition = { personId: match.personId, timestamp: now };
+
+        const response = {
+            known: true,
+            name: person?.name ?? "Unknown",
+            relationship: person?.relationship ?? null,
+            age: person?.age ?? null,
+            diagnosis: person?.diagnosis ?? null,
+            lastConversation: person?.last_conversation ?? null,
+        };
+
+        console.log("[recognize] final response:", response);
+        return response;
+    }
+
+    if (match.similarity >= UNKNOWN_THRESHOLD) {
+        console.log("[recognize] weak match → updating existing unknown", match.personId);
+
+        await saveEmbedding(match.personId, embedding);
+
+        lastRecognition = { personId: null, timestamp: now };
+
+        console.log("[recognize] final response: unknown (updated)");
+        return { known: false };
+    }
+
+    console.log("[recognize] low similarity → new unknown person");
+
+    const newId = await createUnknownPerson();
+    await saveEmbedding(newId, embedding);
+
+    lastRecognition = { personId: null, timestamp: now };
+
+    console.log("[recognize] final response: unknown (new person)");
+    return { known: false };
 }
