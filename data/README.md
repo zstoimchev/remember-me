@@ -119,7 +119,7 @@ If a change is needed → create a new migration file with a new date prefix.
 All migrations are executed using:
 
 ```bash id="v4k1ps"
-./data/migrate.sh
+bash data/migrate.sh
 ```
 
 What the script does:
@@ -161,7 +161,7 @@ docker compose up db -d
 ### Step 2 — Apply schema + migrations
 
 ```bash id="m1c8qv"
-./data/migrate.sh
+bash data/migrate.sh
 ```
 
 ---
