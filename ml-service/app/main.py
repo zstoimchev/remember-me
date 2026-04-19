@@ -4,6 +4,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
+from contextlib import asynccontextmanager
+from deepface import DeepFace
+
 from app.core.logging_config import setup_logging
 from app.core.errors import AppError
 from app.schemas.responses import error_response
@@ -13,9 +16,11 @@ from app.routes.recognize import router as recognize_router
 setup_logging()
 logger = logging.getLogger("ml-service")
 
-@asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+    logger.info("Warming up DeepFace model...")
+    DeepFace.build_model("Facenet512")
+    logger.info("Model ready.")
     yield
 
 app = FastAPI(title="Remember Me ML Service", lifespan=lifespan)

@@ -7,9 +7,9 @@ services:
     environment:
       POSTGRES_DB: remember_me
       POSTGRES_USER: remember_me_user
-      POSTGRES_PASSWORD: remember_me_password
+      POSTGRES_PASSWORD: newpassword123
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./data/schema.sql:/docker-entrypoint-initdb.d/schema.sql:Z

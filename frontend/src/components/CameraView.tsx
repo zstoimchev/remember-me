@@ -110,8 +110,9 @@ const CameraView: React.FC = () => {
     // ----------------------------
     useEffect(() => {
         const interval = setInterval(() => {
+            console.log("📸 Capturing photo..."); // Added console log
             captureFrame();
-        }, 2 * 1000);
+        }, 20 * 1000); // Changed to 20 seconds (20 * 1000 ms)
 
         return () => clearInterval(interval);
     }, [captureFrame]);
