@@ -1,7 +1,3 @@
-Got it — here is the **updated README for `data/`**, keeping everything the same but changing the migration versioning system to **DDMMYY-based naming**.
-
----
-
 # Data — Remember Me
 
 This directory contains everything related to the **PostgreSQL database schema and migrations system**. It is the single source of truth for how the database structure is created and evolved over time.
@@ -213,5 +209,3 @@ This folder provides a **minimal custom migration system** for PostgreSQL that:
 * Tracks applied migrations automatically
 * Guarantees consistent database state across environments
 * Uses **date-based versioning (DDMMYY)** for natural chronological ordering
-
----
