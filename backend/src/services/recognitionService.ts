@@ -9,9 +9,9 @@ import {
     getPersonDetails,
 } from "../repositories/personRepository";
 
-const SIMILARITY_THRESHOLD = 0.55;
+const SIMILARITY_THRESHOLD = 0.65;
 const UNKNOWN_THRESHOLD = 0.5;
-const COOLDOWN_MS = 3000;
+// const COOLDOWN_MS = 3000;
 
 let lastRecognition: { personId: number | null; timestamp: number } | null = null;
 
@@ -35,10 +35,10 @@ export async function recognizePerson(imageBuffer: Buffer) {
 
     console.log("[recognize] start");
 
-    if (lastRecognition && now - lastRecognition.timestamp < COOLDOWN_MS) {
-        console.log("[recognize] cooldown active");
-        return { known: !!lastRecognition.personId };
-    }
+    // if (lastRecognition && now - lastRecognition.timestamp < COOLDOWN_MS) {
+    //     console.log("[recognize] cooldown active");
+    //     return { known: !!lastRecognition.personId };
+    // }
 
     const embedding = await getEmbedding(imageBuffer);
 

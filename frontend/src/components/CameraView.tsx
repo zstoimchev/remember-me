@@ -150,12 +150,12 @@ const CameraView: React.FC = () => {
 
             <PersonOverlay
                 name={person.name}
-                relationship={person.relationship ?? "Unknown relationship"}
+                relationship={person.relationship ?? "Close Friend"}
                 age={person.age ?? 0}
-                diagnosis="Alzheimer's disease, Memory loss"
+                diagnosis="Note: You have Memory loss. Please stay cautious."
                 lastConversation={person.lastConversation ?? "N/A"}
-                time={person.time}
-                location="FRI, Ljubljana"
+                time={`Current time: ${person.time}`}
+                location="Home Location: Glagoljaska ulica 8, Koper"
             />
         </div>
     );
